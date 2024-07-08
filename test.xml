@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<house>
+  <room>Entry way</room>
+  <room>Kitchen</room>
+  <room>Living room</room>
+  <room>Bathroom</room>
+  <room>Bedroom</room>
+</house>
+

@@ -283,4 +283,23 @@ function xml.newXMLObject()
 end
 
 
+local _mode_all = (_VERSION == "Lua 5.1" or _VERSION == "Lua 5.2") and "*a" or "a"
+
+
+function xml.load(path)
+	_argType(1, path, "string")
+
+	local f, err = io.open(path, "r")
+	if not f then
+		error(err)
+	end
+	local s = f:read(_mode_all)
+	f:close()
+	if not s then
+		error(lang.err_load_fail)
+	end
+	return xml.toTable(s)
+end
+
+
 return xml

@@ -143,6 +143,21 @@ Creates a new xmlObject with no nodes.
 **Returns:** The new xmlObject.
 
 
+## xml.load
+
+Loads an XML file from disk and converts it to an xmlObject using the default parser settings.
+
+`local xml_obj = xml.load(path)`
+
+* `path`: The file path.
+
+**Returns:** The xmlObject.
+
+**Notes:**
+
+* This function is intended for use from the console and the Lua interactive prompt. If your host application provides its own functions to load files (like LÖVE's `love.filesystem`), then you should use those instead. (In such a case, you might want to erase this function at run time with `nil`, or delete it outright.)
+
+
 # API: xmlParser
 
 ## xmlParser:setNamespaceMode

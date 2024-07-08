@@ -39,6 +39,7 @@ shared.lang = {
 	-- xml.lua
 	err_bad_ns_mode = "bad value for Namespace Mode (must be nil, '1.0' or '1.1')",
 	err_bad_indent = "argument #1: expected space or tab character",
+	err_load_fail = "failed to read file: $1",
 
 	-- xml_in.lua
 	err_int_empty_stack = "internal failure: stack is empty",

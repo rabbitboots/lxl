@@ -386,4 +386,44 @@ end
 -- xml.newXMLObject() -- nothing to test.
 
 
+-- [===[
+self:registerJob("xml.load()", function(self)
+	-- [====[
+	self:expectLuaError("arg #1 bad type", xml.load, {})
+	self:expectLuaError("arg #1 non-existent file", xml.load, "not-a-real-file.ex-em-el")
+
+	local o = xml.load("test.xml")
+	o:pruneSpace()
+	self:isEqual(o.children[1].id, "element")
+	self:isEqual(o.children[1].name, "house")
+	self:isEqual(o.children[1].children[1].id, "element")
+	self:isEqual(o.children[1].children[1].name, "room")
+	self:isEqual(o.children[1].children[1].children[1].id, "cdata")
+	self:isEqual(o.children[1].children[1].children[1].text, "Entry way")
+
+	self:isEqual(o.children[1].children[2].id, "element")
+	self:isEqual(o.children[1].children[2].name, "room")
+	self:isEqual(o.children[1].children[2].children[1].id, "cdata")
+	self:isEqual(o.children[1].children[2].children[1].text, "Kitchen")
+
+	self:isEqual(o.children[1].children[3].id, "element")
+	self:isEqual(o.children[1].children[3].name, "room")
+	self:isEqual(o.children[1].children[3].children[1].id, "cdata")
+	self:isEqual(o.children[1].children[3].children[1].text, "Living room")
+
+	self:isEqual(o.children[1].children[4].id, "element")
+	self:isEqual(o.children[1].children[4].name, "room")
+	self:isEqual(o.children[1].children[4].children[1].id, "cdata")
+	self:isEqual(o.children[1].children[4].children[1].text, "Bathroom")
+
+	self:isEqual(o.children[1].children[5].id, "element")
+	self:isEqual(o.children[1].children[5].name, "room")
+	self:isEqual(o.children[1].children[5].children[1].id, "cdata")
+	self:isEqual(o.children[1].children[5].children[1].text, "Bedroom")
+	--]====]
+end
+)
+--]===]
+
+
 self:runJobs()

@@ -1,3 +1,8 @@
+# v2.0.1 -- 08 Jul 2024
+
+* Added xml.load()
+
+
 # v2.0.0 -- 05 Jul 2024
 
 This is a major rewrite of [xmlToTable](https://github.com/rabbitboots/xml_to_table). Unfortunately, there are so many changes that it's not possible to write a straightforward upgrade guide. The main improvements are:
