@@ -1,4 +1,4 @@
--- Lua XML Library v2.0.0
+-- Lua XML Library v2.0.1
 -- https://github.com/rabbitboots/lxl
 
 
