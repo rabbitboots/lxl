@@ -1,4 +1,4 @@
-**Version:** 2.0.1
+**Version:** 2.0.2
 
 # Lua XML Library
 
@@ -159,6 +159,30 @@ Loads an XML file from disk and converts it to an xmlObject using the default pa
 
 
 # API: xmlParser
+
+## xmlParser:setCheckCharacters
+
+*Default: true*
+
+When true, the xmlParser checks incoming XML strings for UTF-8 encoding issues and for code points that are forbidden by the XML spec.
+
+`xmlParser:setCheckCharacters(enabled)`
+
+* `enabled`: `true` to enable character checking, `false/nil` to disable it.
+
+**Notes:**
+
+* You should only disable this setting if you experience poor performance, or if you are able to check the file ahead of time with an XML linter.
+
+
+## xmlParser:getCheckCharacters
+
+Gets the setting for checking the encoding of incoming XML strings.
+
+`local enabled = xmlParser:getCheckCharacters()`
+
+**Returns:** `true` if the setting is enabled, `false` otherwise.
+
 
 ## xmlParser:setNamespaceMode
 

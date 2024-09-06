@@ -1290,7 +1290,10 @@ function xIn.parse(str, parser)
 	From Lua, it's easier to check the whole incoming string before processing.
 	https://www.w3.org/TR/REC-xml/#charsets
 	--]]
-	shared.assertCharacters(str)
+	if parser.check_characters then
+		shared.assertCharacters(str)
+	end
+
 	if parser.normalize_line_endings then
 		str = xIn.normalizeLineEndings(str)
 	end

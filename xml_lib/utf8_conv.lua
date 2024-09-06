@@ -6,13 +6,10 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-local utf8Conv = {}
-
-
 local utf8Tools = require(PATH .. "utf8_tools")
 
 
-utf8Conv.lang = {
+local lang = {
 	err_l1_unsup_cp = "unsupported code point",
 	err_u16_no_space1 = "not enough space to decode a 16-bit value",
 	err_u16_no_space2 = "not enough space to decode a second 16-bit value",
@@ -20,25 +17,29 @@ utf8Conv.lang = {
 	err_u16_b2_oob = "second 16-byte value is out of range",
 	err_u8_decode = "UTF-8 decoding error: $1"
 }
-local lang = utf8Conv.lang
 
 
-local interp, _argType = utf8Tools._interp, utf8Tools._argType
+local interp, _argType, stringFromCode, codeFromString, step = utf8Tools._interp,
+	utf8Tools._argType, utf8Tools.stringFromCode, utf8Tools.codeFromString,
+	utf8Tools.step
 
 
-function utf8Conv.latin1_utf8(s)
+local concat, char = table.concat, string.char
+
+
+local function latin1_utf8(s)
 	_argType(1, s, "string")
 
 	local t = {}
 	for i = 1, #s do
-		t[#t + 1] = utf8Tools.stringFromCode(s:sub(i, i):byte())
+		t[#t + 1] = stringFromCode(s:sub(i, i):byte())
 	end
 
-	return table.concat(t)
+	return concat(t)
 end
 
 
-function utf8Conv.utf8_latin1(s, unmapped)
+local function utf8_latin1(s, unmapped)
 	_argType(1, s, "string")
 	-- don't assert `unmapped`
 
@@ -46,7 +47,7 @@ function utf8Conv.utf8_latin1(s, unmapped)
 
 	local t, i = {}, 1
 	while i do
-		local c, err = utf8Tools.codeFromString(s, i)
+		local c, err = codeFromString(s, i)
 		if not c then
 			return nil, err, i
 
@@ -58,12 +59,12 @@ function utf8Conv.utf8_latin1(s, unmapped)
 			end
 
 		else
-			t[#t + 1] = string.char(c)
+			t[#t + 1] = char(c)
 		end
-		i = utf8Tools.step(s, i)
+		i = step(s, i)
 	end
 
-	return table.concat(t)
+	return concat(t)
 end
 
 
@@ -80,7 +81,7 @@ local function combine16Bit(s, i, big_en)
 end
 
 
-function utf8Conv.utf16_utf8(s, big_en)
+local function utf16_utf8(s, big_en)
 	_argType(1, s, "string")
 
 	local t, i = {}, 1
@@ -92,7 +93,7 @@ function utf8Conv.utf16_utf8(s, big_en)
 		local w1 = combine16Bit(s, i, big_en)
 
 		if w1 < 0xd800 or w1 > 0xdfff then
-			t[#t + 1] = utf8Tools.stringFromCode(w1)
+			t[#t + 1] = stringFromCode(w1)
 			i = i + 2
 
 		elseif w1 > 0xdbff then
@@ -110,12 +111,12 @@ function utf8Conv.utf16_utf8(s, big_en)
 				return nil, lang.err_u16_b2_oob, i
 			end
 
-			t[#t + 1] = utf8Tools.stringFromCode(((w1 % 0x400) * 0x400) + (w2 % 0x400) + 0x10000)
+			t[#t + 1] = stringFromCode(((w1 % 0x400) * 0x400) + (w2 % 0x400) + 0x10000)
 			i = i + 2
 		end
 	end
 
-	return table.concat(t)
+	return concat(t)
 end
 
 
@@ -128,14 +129,14 @@ local function split16Bit(v, big_en)
 end
 
 
-function utf8Conv.utf8_utf16(s, big_en)
+local function utf8_utf16(s, big_en)
 	_argType(1, s, "string")
 
 	if s == "" then return "" end
 
 	local t, i = {}, 1
 	while i do
-		local c, err = utf8Tools.codeFromString(s, i)
+		local c, err = codeFromString(s, i)
 		if not c then
 			return nil, interp(lang.err_u8_decode, err), i
 		end
@@ -143,24 +144,30 @@ function utf8Conv.utf8_utf16(s, big_en)
 		local  v1, v2
 		if c < 0x10000 then
 			v1, v2 = split16Bit(c, big_en)
-			t[#t + 1] = string.char(v1, v2)
+			t[#t + 1] = char(v1, v2)
 		else
 			c = c - 0x10000
 			local w1 = 0xd800 + math.floor(c / 0x400)
 			local w2 = 0xdc00 + (c % 0x400)
 
 			v1, v2 = split16Bit(w1, big_en)
-			t[#t + 1] = string.char(v1, v2)
+			t[#t + 1] = char(v1, v2)
 
 			v1, v2 = split16Bit(w2, big_en)
-			t[#t + 1] = string.char(v1, v2)
+			t[#t + 1] = char(v1, v2)
 		end
 
-		i = utf8Tools.step(s, i)
+		i = step(s, i)
 	end
 
-	return table.concat(t)
+	return concat(t)
 end
 
 
-return utf8Conv
+return {
+	lang = lang,
+	latin1_utf8 = latin1_utf8,
+	utf8_latin1 = utf8_latin1,
+	utf16_utf8 = utf16_utf8,
+	utf8_utf16 = utf8_utf16,
+}

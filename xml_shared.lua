@@ -145,6 +145,7 @@ shared.lang = {
 	xml_out_u16_conv_fail = "Conversion to UTF-16 failed: $1",
 
 	-- xml_shared.lua
+	arg_bad_int_range = "argument #$1: expected integer in range ($2-$3)",
 	err_arg_bad_type = "argument #$1: bad type (expected [$2], got $3)",
 	err_arg_num_ge = "argument #$1 needs to be a number >= $2",
 	err_assert_fail = "type assertion failed (expected type $1, got $2)",
@@ -214,6 +215,14 @@ end
 local _argNumGE = shared._argNumGE
 
 
+function shared._argIntRange(n, v, min, max)
+	if type(v) ~= "number" or math.floor(v) ~= v or v < min or v > max then
+		error(interp(lang.arg_bad_int_range, n, min, max), 2)
+	end
+end
+local _argIntRange = shared._argIntRange
+
+
 function shared._assertType(v, e)
 	if type(v) ~= e then
 		error(interp(lang.err_assert_fail, e, type(v)))
@@ -281,22 +290,14 @@ end
 
 function shared.checkRangeLUT(lut, value)
 	-- Checks if a value is within one of a series of ranges.
-	for _, range in ipairs(lut) do
-		if type(range) == "number" then
-			if value == range then
-				return true
-			elseif value < range then
-				return false
-			end
-		else
-			if value >= range[1] and value <= range[2] then
-				return true
-			elseif value < range[1] then
-				return false
-			end
+	for i = 1, #lut, 2 do
+		if value < lut[i] then
+			return
+
+		elseif value <= lut[i + 1] then
+			return true
 		end
 	end
-	return false
 end
 
 
@@ -311,44 +312,44 @@ shared.lut_default_rev = shared.makeInverseLUT(shared.lut_default_entities)
 -- https://www.w3.org/TR/xml/#charsets
 -- https://en.wikipedia.org/wiki/Valid_characters_in_XML
 shared.lut_xml_unicode = {
-	0x0009,
-	0x000a,
-	0x000d,
-	{0x0020, 0xd7ff},
-	{0xe000, 0xfffd},
-	{0x10000, 0x10ffff},
+	0x0009, 0x0009,
+	0x000a, 0x000a,
+	0x000d, 0x000d,
+	0x0020, 0xd7ff,
+	0xe000, 0xfffd,
+	0x10000, 0x10ffff,
 }
 
 
 -- Valid code points for the start of a name
 shared.lut_name_start_char = {
-	(":"):byte(),
-	{("A"):byte(), ("Z"):byte()},
-	("_"):byte(),
-	{("a"):byte(), ("z"):byte()},
-	{0xC0, 0xD6},
-	{0xD8, 0xF6},
-	{0xF8, 0x2FF},
-	{0x370, 0x37D},
-	{0x37F, 0x1FFF},
-	{0x200C, 0x200D},
-	{0x2070, 0x218F},
-	{0x2C00, 0x2FEF},
-	{0x3001, 0xD7FF},
-	{0xF900, 0xFDCF},
-	{0xFDF0, 0xFFFD},
-	{0x10000, 0xEFFFF},
+	(":"):byte(), (":"):byte(),
+	("A"):byte(), ("Z"):byte(),
+	("_"):byte(), ("_"):byte(),
+	("a"):byte(), ("z"):byte(),
+	0xC0, 0xD6,
+	0xD8, 0xF6,
+	0xF8, 0x2FF,
+	0x370, 0x37D,
+	0x37F, 0x1FFF,
+	0x200C, 0x200D,
+	0x2070, 0x218F,
+	0x2C00, 0x2FEF,
+	0x3001, 0xD7FF,
+	0xF900, 0xFDCF,
+	0xFDF0, 0xFFFD,
+	0x10000, 0xEFFFF,
 }
 
 
 -- Valid code points for names. (This is in addition to lut_name_start_char.)
 shared.lut_name_char = {
-	("-"):byte(),
-	("."):byte(),
-	{("0"):byte(), ("9"):byte()},
-	0xB7,
-	{0x0300, 0x036F},
-	{0x203F, 0x2040},
+	("-"):byte(), ("-"):byte(),
+	("."):byte(), ("."):byte(),
+	("0"):byte(), ("9"):byte(),
+	0xB7, 0xB7,
+	0x0300, 0x036F,
+	0x203F, 0x2040,
 }
 
 
@@ -364,14 +365,55 @@ shared.decl_utf16_be = string.char(0x00, 0x3C, 0x00, 0x3F, 0x00, 0x78, 0x00, 0x6
 
 
 function shared.checkXMLCharacters(s)
-	local byte = 1
-	for i, code, u8_str in utf8Tools.codes(s) do
-		if not shared.checkRangeLUT(shared.lut_xml_unicode, code) then
-			return nil, i, byte
+	-- n: code point count, b: byte index
+
+	local jit = rawget(_G, "jit")
+	if jit and jit.status() then
+		local n, b = 1, 1
+		local codeFromString = utf8Tools.codeFromString
+		local checkRangeLUT = shared.checkRangeLUT
+		local lut = shared.lut_xml_unicode
+		while b <= #s do
+			local code, u8_seq = codeFromString(s, b)
+			if not code or not checkRangeLUT(lut, code) then
+				return nil, n, b
+			end
+			n = n + 1
+			b = b + #u8_seq
 		end
-		byte = byte + #u8_str
+		return true
+	else
+		-- Based on:
+		-- https://github.com/kikito/utf8_validator.lua
+		-- Modified to check valid XML code points (see production [2] Char)
+		local n, b, len = 1, 1, #s
+		while b <= len do
+			if s:find("^[\9\10\13\32-\127]", b) then
+				b = b + 1
+
+			elseif s:find("^[\194-\223][\128-\191]", b)
+				then b = b + 2
+
+			elseif not s:find("^\239\191[\190-\191]", b) -- 0xfffe (239 191 190), 0xffff (239 191 191)
+				and (s:find("^\224[\160-\191][\128-\191]", b)
+				or s:find("^[\225-\236][\128-\191][\128-\191]", b)
+				or s:find("^\237[\128-\159][\128-\191]", b)
+				or s:find("^[\238-\239][\128-\191][\128-\191]", b))
+				then b = b + 3
+
+			elseif s:find("^\240[\144-\191][\128-\191][\128-\191]", b)
+				or s:find("^[\241-\243][\128-\191][\128-\191][\128-\191]", b)
+				or s:find("^\244[\128-\143][\128-\191][\128-\191]", b)
+				then
+				b = b + 4
+
+			else
+				return nil, n, b
+			end
+			n = n + 1
+		end
+		return true
 	end
-	return true
 end
 
 

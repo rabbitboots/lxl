@@ -1,3 +1,10 @@
+# v2.0.2 -- 06 Sept 2024
+
+* Added `Parser:setCheckCharacters()` and `Parser:getCheckCharacters()`.
+* Modified `shared.checkXMLCharacters()` to include logic based on [kikito's utf8_validator.lua](https://github.com/kikito/utf8_validator.lua). (See also utf8Tools, where the code is imported as `utf8Tools.checkAlt()`.) This pattern-based code is faster when run under PUC-Lua.
+* Updated libraries: errTest (2.1.1 -> 2.1.2), utf8Tools (1.3.0 -> 1.4.0)
+* Simplified the layout of code point lookup tables in xmlShared.
+
 # v2.0.1 -- 08 Jul 2024
 
 * Added xml.load()

@@ -1,4 +1,4 @@
--- Lua XML Library v2.0.1
+-- Lua XML Library v2.0.2
 -- https://github.com/rabbitboots/lxl
 
 
@@ -52,6 +52,7 @@ _mt_parser.__index = _mt_parser
 function xml.newParser()
 	return setmetatable({
 		-- reading in
+		check_characters = true,
 		check_encoding_mismatch = true,
 		collect_comments = true,
 		collect_pi = true,
@@ -72,6 +73,16 @@ function xml.newParser()
 		out_pretty = true,
 		out_xml_decl = true
 	}, _mt_parser)
+end
+
+
+function _mt_parser:setCheckCharacters(v)
+	self.check_characters = not not v
+end
+
+
+function _mt_parser:getCheckCharacters()
+	return self.check_characters
 end
 
 

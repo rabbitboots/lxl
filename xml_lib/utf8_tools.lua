@@ -1,4 +1,4 @@
--- utf8Tools v1.3.0
+-- utf8Tools v1.4.0
 -- https://github.com/rabbitboots/utf8_tools
 
 
@@ -6,6 +6,11 @@
 MIT License
 
 Copyright (c) 2022 - 2024 RBTS
+
+`utf8Tools.checkAlt()` is a modified version of `utf8_validator.lua` by
+kikito (also MIT): https://github.com/kikito/utf8_validator.lua
+
+Copyright (c) 2013 Enrique García Cota
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +32,10 @@ SOFTWARE.
 --]]
 
 
-local utf8Tools = {}
+local floor, char, concat, type = math.floor, string.char, table.concat, type
 
 
-utf8Tools.options = {
-	check_surrogates = true
-}
-
-
-utf8Tools.lang = {
+local lang = {
 	arg_bad_int = "argument #$1: expected integer",
 	arg_bad_int_range = "argument #$1: expected integer in range ($2-$3)",
 	arg_bad_type = "argument #$1: bad type (expected $2, got $3)",
@@ -43,6 +43,7 @@ utf8Tools.lang = {
 	byte_nil = "byte #$1 is nil",
 	byte_cont_oob = "continuation byte #$1 ($2) is out of range (0x80 - 0xbf)",
 	cp_oob = "code point is out of bounds",
+	err_invalid = "invalid UTF-8 encoding",
 	err_iter_codes = "index $1: $2",
 	err_surrogate = "invalid code point (in surrogate range)",
 	len_mismatch = "$1-byte length mismatch. Got: $2, must be in this range: $3 - $4",
@@ -51,7 +52,6 @@ utf8Tools.lang = {
 	trailing_1st = "trailing byte (2nd, 3rd or 4th) receieved as 1st",
 	var_i_err = "argument $1: $2"
 }
-local lang = utf8Tools.lang
 
 
 local interp -- v v02
@@ -67,32 +67,46 @@ do
 		return r
 	end
 end
-utf8Tools._interp = interp
 
 
-local function HEX(n) return ("0x%x"):format(n) end
+local check_surrogates = true
+
+
+local function getCheckSurrogates()
+	return check_surrogates
+end
+
+
+local function setCheckSurrogates(v)
+	check_surrogates = not not v
+end
+
+
+local function _0x(n)
+	return ("0x%x"):format(n)
+end
 
 
 -- Verifies code point length against allowed UTF-8 byte ranges (1, 2, 3, 4).
 local min_max = {{0x0, 0x7f}, {0x80, 0x7ff}, {0x800, 0xffff}, {0x10000, 0x10ffff}}
 
 
-function utf8Tools._argType(n, v, e)
+local function _argType(n, v, e)
 	if type(v) ~= e then
 		error(interp(lang.arg_bad_type, n, e, type(v)), 2)
 	end
 end
-local _argType = utf8Tools._argType
 
 
 local function _argInt(n, v)
-	if type(v) ~= "number" or math.floor(v) ~= v then
+	if type(v) ~= "number" or floor(v) ~= v then
 		error(interp(lang.arg_bad_int, n), 2)
 	end
 end
 
+
 local function _argIntRange(n, v, min, max)
-	if type(v) ~= "number" or math.floor(v) ~= v or v < min or v > max then
+	if type(v) ~= "number" or floor(v) ~= v or v < min or v > max then
 		error(interp(lang.arg_bad_int_range, n, min, max), 2)
 	end
 end
@@ -117,16 +131,40 @@ local function _cont(b, pos)
 
 	-- Verify "following" byte mark
 	elseif b < 0x80 or b >= 0xc0 then
-		return true, interp(lang.byte_cont_oob, pos, HEX(b))
+		return true, interp(lang.byte_cont_oob, pos, _0x(b))
+	end
+end
+
+
+local function step(s, i)
+	_argType(1, s, "string")
+	_argIntRange(2, i, 0, #s)
+
+	while i < #s do
+		i = i + 1
+		if type(_length(s:byte(i))) == "number" then
+			return i
+		end
+	end
+end
+
+
+local function stepBack(s, i)
+	_argType(1, s, "string")
+	_argIntRange(2, i, 1, #s + 1)
+
+	while i > 1 do
+		i = i - 1
+		if type(_length(s:byte(i))) == "number" then
+			return i
+		end
 	end
 end
 
 
 local function _checkCode(c, len)
-	if utf8Tools.options.check_surrogates then
-		if c >= 0xd800 and c <= 0xdfff then
-			return true, lang.err_surrogate
-		end
+	if check_surrogates and c >= 0xd800 and c <= 0xdfff then
+		return true, lang.err_surrogate
 	end
 
 	if c < 0 or c > 0x10ffff then
@@ -138,33 +176,35 @@ local function _checkCode(c, len)
 	if len then
 		local range = min_max[len]
 		if c < range[1] or c > range[2] then
-			return true, interp(lang.len_mismatch, len, HEX(c), HEX(range[1]), HEX(range[2]))
+			return true, interp(lang.len_mismatch, len, _0x(c), _0x(range[1]), _0x(range[2]))
 		end
 	end
 end
 
 
 local function _codeFromStr(s, i)
-	local b1, b2, b3, b4 = s:byte(i, i + 3)
+	local b1 = s:byte(i)
 	local len = _length(b1)
+	local c, err, msg
 	if type(len) == "string" then
 		return nil, lang[len] or "?"
-	end
 
-	local c, err, msg
-	if len == 1 then
+	elseif len == 1 then
 		c = b1
 
 	elseif len == 2 then
+		local b2 = s:byte(i + 1)
 		err, msg = _cont(b2, 2, 2) if err then return nil, msg end
 		c = (b1 - 0xc0) * 0x40 + (b2 - 0x80)
 
 	elseif len == 3 then
+		local b2, b3 = s:byte(i + 1, i + 2)
 		err, msg = _cont(b2, 2, 3) if err then return nil, msg end
 		err, msg = _cont(b3, 3, 3) if err then return nil, msg end
 		c = (b1 - 0xe0) * 0x1000 + (b2 - 0x80) * 0x40 + (b3 - 0x80)
 
 	elseif len == 4 then
+		local b2, b3, b4 = s:byte(i + 1, i + 3)
 		err, msg = _cont(b2, 2, 4) if err then return nil, msg end
 		err, msg = _cont(b3, 3, 4) if err then return nil, msg end
 		err, msg = _cont(b4, 4, 4) if err then return nil, msg end
@@ -180,7 +220,7 @@ local function _codeFromStr(s, i)
 end
 
 
-function utf8Tools.check(s, i, j)
+local function check(s, i, j)
 	_argType(1, s, "string")
 	i = i or (#s > 0 and 1 or 0)
 	j = j or #s
@@ -208,29 +248,71 @@ function utf8Tools.check(s, i, j)
 end
 
 
-function utf8Tools.scrub(s, repl)
+-- Modified version of: https://github.com/kikito/utf8_validator.lua
+local function checkAlt(s, i)
+	_argType(1, s, "string")
+	if #s == 0 then
+		return 0
+	end
+	i = i or 1
+
+	_argIntRange(2, i, math.min(1, #s), #s)
+
+	local len, n = #s, 0
+	while i <= len do
+		if s:find("^[%z\1-\127]", i) then
+			i = i + 1
+
+		elseif s:find("^[\194-\223][\128-\191]", i) then
+			i = i + 2
+
+		elseif s:find("^\224[\160-\191][\128-\191]", i)
+			or s:find("^[\225-\236][\128-\191][\128-\191]", i)
+			or s:find("^\237[\128-\159][\128-\191]", i)
+			or s:find("^[\238-\239][\128-\191][\128-\191]", i)
+			then
+			i = i + 3
+
+		elseif s:find("^\240[\144-\191][\128-\191][\128-\191]", i)
+			or s:find("^[\241-\243][\128-\191][\128-\191][\128-\191]", i)
+			or s:find("^\244[\128-\143][\128-\191][\128-\191]", i)
+			then
+			i = i + 4
+
+		else
+			return nil, lang.err_invalid, i
+		end
+		n = n + 1
+	end
+
+	return n
+end
+
+
+local function scrub(s, repl, alt)
 	_argType(1, s, "string")
 	_argType(2, repl, "string")
 
+	local chk = alt and checkAlt or check
 	local t, i = {}, 1
 
 	while i <= #s do
-		local j, _, bad_i = utf8Tools.check(s, i)
+		local j, _, bad_i = chk(s, i)
 		if not j then
 			t[#t + 1] = s:sub(i, bad_i - 1)
 			t[#t + 1] = repl
-			i = utf8Tools.step(s, bad_i)
+			i = step(s, bad_i)
 		else
 			t[#t + 1] = s:sub(i)
 			break
 		end
 	end
 
-	return table.concat(t)
+	return concat(t)
 end
 
 
-function utf8Tools.codeFromString(s, i)
+local function codeFromString(s, i)
 	_argType(1, s, "string")
 	i = i == nil and 1 or i
 	_argInt(2, i, "number")
@@ -246,7 +328,7 @@ function utf8Tools.codeFromString(s, i)
 end
 
 
-function utf8Tools.stringFromCode(c)
+local function stringFromCode(c)
 	_argInt(1, c)
 
 	local err, msg = _checkCode(c, nil)
@@ -254,54 +336,28 @@ function utf8Tools.stringFromCode(c)
 		return nil, msg
 
 	elseif c < 0x80 then
-		return string.char(c)
+		return char(c)
 
 	elseif c < 0x800 then
-		return string.char(
-			0xc0 + math.floor(c / 0x40),
+		return char(
+			0xc0 + floor(c / 0x40),
 			0x80 + (c % 0x40)
 		)
 
 	elseif c < 0x10000 then
-		return string.char(
-			0xe0 + math.floor(c / 0x1000),
-			0x80 + math.floor( (c % 0x1000) / 0x40),
+		return char(
+			0xe0 + floor(c / 0x1000),
+			0x80 + floor( (c % 0x1000) / 0x40),
 			0x80 + (c % 0x40)
 		)
 
 	elseif c <= 0x10ffff then
-		return string.char(
-			0xf0 + math.floor(c / 0x40000),
-			0x80 + math.floor((c % 0x40000) / 0x1000),
-			0x80 + math.floor((c % 0x1000) / 0x40),
+		return char(
+			0xf0 + floor(c / 0x40000),
+			0x80 + floor((c % 0x40000) / 0x1000),
+			0x80 + floor((c % 0x1000) / 0x40),
 			0x80 + (c % 0x40)
 		)
-	end
-end
-
-
-function utf8Tools.step(s, i)
-	_argType(1, s, "string")
-	_argIntRange(2, i, 0, #s)
-
-	while i < #s do
-		i = i + 1
-		if type(_length(s:byte(i))) == "number" then
-			return i
-		end
-	end
-end
-
-
-function utf8Tools.stepBack(s, i)
-	_argType(1, s, "string")
-	_argIntRange(2, i, 1, #s + 1)
-
-	while i > 1 do
-		i = i - 1
-		if type(_length(s:byte(i))) == "number" then
-			return i
-		end
 	end
 end
 
@@ -310,7 +366,7 @@ local function _codes(s, i)
 	if i > #s then
 		return
 	end
-	local c, s2 = utf8Tools.codeFromString(s, i)
+	local c, s2 = codeFromString(s, i)
 	if not c then
 		error(interp(lang.err_iter_codes, i, s2))
 	end
@@ -318,24 +374,39 @@ local function _codes(s, i)
 end
 
 
-function utf8Tools.codes(s)
+local function codes(s)
 	_argType(1, s, "string")
 
 	return _codes, s, 1
 end
 
 
-function utf8Tools.concatCodes(...)
+local function concatCodes(...)
 	local t = {...}
 	for i = 1, #t do
-		local s, err = utf8Tools.stringFromCode(t[i])
+		local s, err = stringFromCode(t[i])
 		if not s then
 			error(interp(lang.var_i_err, i, err))
 		end
 		t[i] = s
 	end
-	return table.concat(t)
+	return concat(t)
 end
 
 
-return utf8Tools
+return {
+	lang = lang,
+	_interp = interp,
+	_argType = _argType,
+	getCheckSurrogates = getCheckSurrogates,
+	setCheckSurrogates = setCheckSurrogates,
+	step = step,
+	stepBack = stepBack,
+	check = check,
+	checkAlt = checkAlt,
+	scrub = scrub,
+	codeFromString = codeFromString,
+	stringFromCode = stringFromCode,
+	codes = codes,
+	concatCodes = concatCodes
+}
