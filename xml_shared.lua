@@ -32,6 +32,13 @@ SOFTWARE.
 local shared = {}
 
 
+local jit_tracing
+do
+	local jit = rawget(_G, "jit")
+	jit_tracing = jit and jit.status() or false
+end
+
+
 local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
 
 
@@ -367,8 +374,7 @@ shared.decl_utf16_be = string.char(0x00, 0x3C, 0x00, 0x3F, 0x00, 0x78, 0x00, 0x6
 function shared.checkXMLCharacters(s)
 	-- n: code point count, b: byte index
 
-	local jit = rawget(_G, "jit")
-	if jit and jit.status() then
+	if jit_tracing then
 		local n, b = 1, 1
 		local codeFromString = utf8Tools.codeFromString
 		local checkRangeLUT = shared.checkRangeLUT

@@ -220,4 +220,32 @@ end
 --]===]
 
 
+-- [===[
+self:registerJob("Parser:setCheckCharacters()", function(self)
+
+	--[[
+	You can try disabling this feature if LXL is too slow and you are 100% confident
+	that the incoming XML is correctly encoded, with no code points that are forbidden
+	by the spec.
+	--]]
+
+	do
+		self:print(4, "[+] forbidden code points are is silently accepted as part of the text content")
+		local s = "<r>foo\0bar</r>"
+		local p = xml.newParser()
+		p:setCheckCharacters(false)
+		local o = p:toTable(s)
+
+		-- NOTE: The console output is cut off in 5.1 due to null.
+		self:isEqual(o.children[1].children[1].text, "foo\0bar")
+
+		-- Test the getter while we're at it.
+		p:setCheckCharacters(true)
+		self:isEqual(p:getCheckCharacters(), true)
+	end
+end
+)
+--]===]
+
+
 self:runJobs()
