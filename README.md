@@ -172,7 +172,7 @@ When true, the xmlParser checks incoming XML strings for UTF-8 encoding issues a
 
 **Notes:**
 
-* You should only disable this setting if you experience poor performance, or if you are able to check the file ahead of time with an XML linter.
+* This setting is **required** by the spec. You should only disable it if you experience poor performance, or if you are able to check the file ahead of time with an XML linter.
 
 
 ## xmlParser:getCheckCharacters
