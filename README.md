@@ -1,4 +1,4 @@
-**Version:** 2.0.2
+**Version:** 2.0.3
 
 # Lua XML Library
 
@@ -1339,6 +1339,9 @@ The situation is different when manipulating an xmlObject node tree. The namespa
 
 ```
 Copyright (c) 2022 - 2024 RBTS
+
+Code from github.com/kikito/utf8_validator.lua:
+Copyright (c) 2013 Enrique García Cota + Adam Baldwin + hanzao + Equi 4 Software
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
