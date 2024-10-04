@@ -1,3 +1,10 @@
+# v2.0.4 -- 04 Oct 2024
+
+* Renamed test files.
+* Flattened the `test` folder.
+* Integrated snippets from PILE (type checker, etc.).
+
+
 # v2.0.3 -- 01 Oct 2024
 
 * Updated license text to include the copyright for code from kikito/utf8_validator.lua (in xml_shared.lua).

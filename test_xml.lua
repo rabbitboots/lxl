@@ -392,7 +392,7 @@ self:registerJob("xml.load()", function(self)
 	self:expectLuaError("arg #1 bad type", xml.load, {})
 	self:expectLuaError("arg #1 non-existent file", xml.load, "not-a-real-file.ex-em-el")
 
-	local o = xml.load("test.xml")
+	local o = xml.load("test_lxl.xml")
 	o:pruneSpace()
 	self:isEqual(o.children[1].id, "element")
 	self:isEqual(o.children[1].name, "house")
