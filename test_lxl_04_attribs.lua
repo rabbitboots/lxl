@@ -4,14 +4,14 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
 
 
 local hex = string.char
@@ -31,7 +31,7 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
+self:registerFunction("lxl.toTable()", lxl.toTable)
 
 
 -- [===[
@@ -41,7 +41,7 @@ self:registerJob("Attribute Value Normalization", function(self)
 
 		self:print(3, "[+] normalize whitespace (turn line feed, carriage return and h-tab into space)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:print(4, pretty.print(tree))
 		self:isEqual(tree.children[1].attr["a"], " a b c ")
 	end
@@ -103,7 +103,7 @@ self:registerJob("Attribute-List Declarations", function(self)
 
 		self:print(3, "[+] Apply a default value for an attribute (yer_name -> 'zoop')")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		self:isEqual(tree.attr_defaults["root"]["yer_name"].default, "zoop")
 		self:isEqual(tree.attr_defaults["root"]["yer_name"].type, "CDATA")
@@ -126,7 +126,7 @@ self:registerJob("Attribute-List Declarations", function(self)
 ]=]
 		self:print(3, "[+] Apply a #FIXED default value for an attribute (yah_nom -> 'zap')")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		--self:print(4, pretty.print(tree))
 		self:print(4, "attr_defaults: " .. inspect(tree.attr_defaults))
@@ -149,7 +149,7 @@ self:registerJob("Attribute-List Declarations", function(self)
 
 		self:print(3, "[+] Test non-CDATA attribute value normalization (delete leading and trailing; merge runs into one character)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		self:print(4, "attr_defaults: " .. inspect(tree.attr_defaults))
 		self:print(4, "root attributes: " .. inspect(root.attr))
@@ -172,7 +172,7 @@ self:registerJob("Attribute-List Declarations", function(self)
 ]>
 <root></root>
 ]=]
-		self:expectLuaError("general entity must be declared before being referenced in an attribute-list.", xml.toTable, str)
+		self:expectLuaError("general entity must be declared before being referenced in an attribute-list.", lxl.toTable, str)
 	end
 	--]====]
 
@@ -191,7 +191,7 @@ self:registerJob("Attribute-List Declarations", function(self)
 
 		self:print(3, "[+] Entity reference within default attribute value")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		self:print(4, "attr_defaults: " .. inspect(tree.attr_defaults))
 		self:print(4, "root attributes: " .. inspect(root.attr))

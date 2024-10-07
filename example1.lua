@@ -1,7 +1,7 @@
 -- The README example.
-local xml = require("xml")
+local lxl = require("lxl")
 
-local xml_obj = xml.toTable([=[
+local xml_obj = lxl.toTable([=[
 <foobar>
  <elem1 a1="Hello" a2="World">Some text.</elem1>
  <empty/>
@@ -29,7 +29,7 @@ a2	World
 --]]
 
 
-print(xml.toString(xml_obj))
+print(lxl.toString(xml_obj))
 -- Output:
 --[[
 <?xml version="1.0" encoding="UTF-8"?>

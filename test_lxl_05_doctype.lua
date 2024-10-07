@@ -4,14 +4,14 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
 
 
 local hex = string.char
@@ -31,7 +31,7 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
+self:registerFunction("lxl.toTable()", lxl.toTable)
 
 
 -- [===[
@@ -45,7 +45,7 @@ self:registerJob("DOCTYPE", function(self)
 
 		self:print(3, "[+] Minimum DOCTYPE)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		local doctype = tree:getDocType()
 		self:print(4, pretty.print(doctype))
@@ -58,7 +58,7 @@ self:registerJob("DOCTYPE", function(self)
 	do
 		local str = "<!DOCTYPE foo SYSTEM 'syslit'><r/>"
 		print("[+] DOCTYPE with SYSTEM Declaration: " .. str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:print(4, pretty.print(tree.children[1]))
 		self:isEqual(tree.children[1].external_id.type, "SYSTEM")
 		self:isEqual(tree.children[1].external_id.system_literal, "syslit")
@@ -70,7 +70,7 @@ self:registerJob("DOCTYPE", function(self)
 	do
 		local str = "<!DOCTYPE foo PUBLIC 'publit' 'syslit'><r/>"
 		print("[+] DOCTYPE with PUBLIC Declaration: " .. str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:print(4, pretty.print(tree.children[1]))
 		self:isEqual(tree.children[1].external_id.type, "PUBLIC")
 		self:isEqual(tree.children[1].external_id.pub_id_literal, "publit")
@@ -83,7 +83,7 @@ self:registerJob("DOCTYPE", function(self)
 
 
 	-- [====[
-	self:expectLuaError("invalid internal subset", xml.toTable, [=[
+	self:expectLuaError("invalid internal subset", lxl.toTable, [=[
 <!DOCTYPE r [ zoop ] >
 <r></r>]=])
 	--]====]
@@ -107,7 +107,7 @@ self:registerJob("DOCTYPE", function(self)
 
 		self:print(3, "[+] Comments and PIs before, after, and embedded into the DTD internal subset")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 
 		self:isEqual(tree.children[1].id, "comment")
 		self:isEqual(tree.children[1].text, "before")
@@ -153,7 +153,7 @@ self:registerJob("DOCTYPE", function(self)
 
 		self:print(3, "[+] DOCTYPE, !ELEMENT, !ATTLIST")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 
 		-- The default attribs table looks like this:
 		--[=====[
@@ -196,7 +196,7 @@ self:registerJob("DOCTYPE", function(self)
 
 		self:print(3, "[+] All of 'markupdecl' in DOCTYPE")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 
 		self:isEqual(tree.children[1].id, "doctype")
 		self:isEqual(tree.children[1].name, "r")
@@ -275,16 +275,16 @@ self:registerJob("DOCTYPE", function(self)
 
 		self:print(3, "[+] !ELEMENT variations")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 
 		-- NOTE: None of these make it into the final tree. The test is considered a pass
-		-- if xml.toTable() completes without raising an error.
+		-- if lxl.toTable() completes without raising an error.
 	end
 	--]====]
 
 
 	-- [====[
-	self:expectLuaError("empty element declaration", xml.toTable, [=[
+	self:expectLuaError("empty element declaration", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ELEMENT>
 ]>
@@ -294,7 +294,7 @@ self:registerJob("DOCTYPE", function(self)
 
 
 	-- [====[
-	self:expectLuaError("choice missing final part", xml.toTable, [=[
+	self:expectLuaError("choice missing final part", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ELEMENT foobar (foo | )>
 ]>
@@ -304,7 +304,7 @@ self:registerJob("DOCTYPE", function(self)
 
 
 	-- [====[
-	self:expectLuaError("missing parentheses around PCDATA", xml.toTable, [=[
+	self:expectLuaError("missing parentheses around PCDATA", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ELEMENT e #PCDATA>
 ]>
@@ -314,7 +314,7 @@ self:registerJob("DOCTYPE", function(self)
 
 
 	-- [====[
-	self:expectLuaError("PCDATA missing last choice", xml.toTable, [=[
+	self:expectLuaError("PCDATA missing last choice", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ELEMENT e (#PCDATA | )*>
 ]>
@@ -359,24 +359,24 @@ self:registerJob("DOCTYPE: Attribute Declarations", function(self)
 
 		self:print(3, "[+] Various !ATTLIST declarations")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 	end
 	--]====]
 
 
 	-- [====[
-	self:expectLuaError("missing Attribute Type in list (1)", xml.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #REQUIRED>]><r/>]=])
-	self:expectLuaError("missing Attribute Type in list (2)", xml.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #IMPLIED>]><r/>]=])
-	self:expectLuaError("missing Attribute Type in list (3)", xml.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #FIXED 'bar'>]><r/>]=])
+	self:expectLuaError("missing Attribute Type in list (1)", lxl.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #REQUIRED>]><r/>]=])
+	self:expectLuaError("missing Attribute Type in list (2)", lxl.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #IMPLIED>]><r/>]=])
+	self:expectLuaError("missing Attribute Type in list (3)", lxl.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDATA #FIXED 'bar'>]><r/>]=])
 	--]====]
 
 
 	-- [====[
-	self:expectLuaError("bad attribute type", xml.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDADA #REQUIRED>]><r/>]=])
+	self:expectLuaError("bad attribute type", lxl.toTable, [=[<!DOCTYPE r [<!ATTLIST foo CDADA #REQUIRED>]><r/>]=])
 	--]====]
 
 	-- [====[
-	self:expectLuaError("empty notation section", xml.toTable, [=[<!DOCTYPE r [<!ATTLIST foo NOTATION () #REQUIRED>]><r/>]=])
+	self:expectLuaError("empty notation section", lxl.toTable, [=[<!DOCTYPE r [<!ATTLIST foo NOTATION () #REQUIRED>]><r/>]=])
 	--]====]
 end)
 --]===]
@@ -398,7 +398,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 		self:print(3, "[+] Skipping PEReference causes 'unexpanded entity' object creation")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		print(pretty.print(tree.children[2].children[1]))
 		self:isEqual(tree.children[2].children[1].id, "unexp")
 		self:isEqual(tree.children[2].children[1].name, "zip")
@@ -420,7 +420,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 		self:print(3, "[+] standalone='yes' forces the XML Processor to read declarations after PEReference")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		print(pretty.print(tree.children[2].children[1]))
 		self:isEqual(tree.children[2].children[1].id, "cdata")
 		self:isEqual(tree.children[2].children[1].text, "zop")
@@ -440,7 +440,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 ]=]
 
 		self:print(3, "[+] standalone='no' or undefined: undeclared entities are permitted *if* we chose to ignore at least one PEReference")
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:isEqual(tree.children[2].children[1].id, "unexp")
 		self:isEqual(tree.children[2].children[1].name, "zip")
 	end
@@ -448,7 +448,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 
 	-- [====[
-	self:expectLuaError("standalone='yes': no undeclared entities are allowed", xml.toTable, [=[
+	self:expectLuaError("standalone='yes': no undeclared entities are allowed", lxl.toTable, [=[
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE r [
 <!ENTITY % p '<!ENTITY foo "bar">'>
@@ -460,7 +460,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 
 	-- [====[
-	self:expectLuaError("bad PEReference Name (1)", xml.toTable, [=[
+	self:expectLuaError("bad PEReference Name (1)", lxl.toTable, [=[
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE r [
 %bad~name;
@@ -471,7 +471,7 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 
 	-- [====[
-	self:expectLuaError("bad PEReference Name (2)", xml.toTable, [=[
+	self:expectLuaError("bad PEReference Name (2)", lxl.toTable, [=[
 <?xml version="1.0" standalone="yes"?>
 <!DOCTYPE r [
 %;
@@ -507,14 +507,14 @@ self:registerJob("DOCTYPE: PEReferences", function(self)
 
 		self:print(3, "[+] Various !ENTITY declarations")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 	end
 	--]====]
 
 	-- [====[
-	self:expectLuaError("unclosed tag", xml.toTable, [=[<!DOCTYPE r [ <!ENTITY ]><r></r>]=])
-	self:expectLuaError("missing name", xml.toTable, [=[<!DOCTYPE r [ <!ENTITY 'bar']><r></r>]=])
-	self:expectLuaError("invalid NDATA in PEDecl", xml.toTable, [=[<!DOCTYPE r [ <!ENTITY % foo PUBLIC 'bar' 'baz' NDATA bop>]><r></r>]=])
+	self:expectLuaError("unclosed tag", lxl.toTable, [=[<!DOCTYPE r [ <!ENTITY ]><r></r>]=])
+	self:expectLuaError("missing name", lxl.toTable, [=[<!DOCTYPE r [ <!ENTITY 'bar']><r></r>]=])
+	self:expectLuaError("invalid NDATA in PEDecl", lxl.toTable, [=[<!DOCTYPE r [ <!ENTITY % foo PUBLIC 'bar' 'baz' NDATA bop>]><r></r>]=])
 	--]====]
 
 end)
@@ -536,7 +536,7 @@ self:registerJob("DOCTYPE: ExternalID syntax", function(self)
 
 		self:print(3, "[+] Various ExternalID values")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		print(pretty.print(tree))
 		print(inspect(tree.g_entities))
 		self:isEqual(tree.g_entities["f1"].id, "entity_def")
@@ -544,7 +544,7 @@ self:registerJob("DOCTYPE: ExternalID syntax", function(self)
 	--]====]
 
 	-- [====[
-		self:expectLuaError("missing SYSTEM's SystemLiteral", xml.toTable, [=[
+		self:expectLuaError("missing SYSTEM's SystemLiteral", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ENTITY f1 SYSTEM >
 ]>
@@ -554,7 +554,7 @@ self:registerJob("DOCTYPE: ExternalID syntax", function(self)
 
 
 	-- [====[
-		self:expectLuaError("missing quote", xml.toTable, [=[
+		self:expectLuaError("missing quote", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ENTITY f1 SYSTEM 'foobar >
 ]>
@@ -564,7 +564,7 @@ self:registerJob("DOCTYPE: ExternalID syntax", function(self)
 
 
 	-- [====[
-		self:expectLuaError("missing PUBLIC's PubidLiteral", xml.toTable, [=[
+		self:expectLuaError("missing PUBLIC's PubidLiteral", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ENTITY f1 PUBLIC >
 ]>
@@ -574,7 +574,7 @@ self:registerJob("DOCTYPE: ExternalID syntax", function(self)
 
 
 	-- [====[
-		self:expectLuaError("missing PUBLIC's SystemLiteral", xml.toTable, [=[
+		self:expectLuaError("missing PUBLIC's SystemLiteral", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ENTITY f1 PUBLIC 'foobar'>
 ]>
@@ -600,7 +600,7 @@ self:registerJob("DOCTYPE: <!NOTATION>", function(self)
 
 		self:print(3, "various <!NOTATION> declarations")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		-- There is nothing to check, as Notation Declarations are parsed, but not attached
 		-- to the output. If we have reached this point, then the test is considered
 		-- successful.
@@ -609,15 +609,15 @@ self:registerJob("DOCTYPE: <!NOTATION>", function(self)
 
 
 	-- [====[
-	self:expectLuaError("Incorrect opening word", xml.toTable, [=[<!DOCTYPE r [<!NATOTION foobar SYSTEM 'system_literal'>]></r>]=])
-	self:expectLuaError("Bad Name", xml.toTable, [=[<!DOCTYPE r [<!NOTATION foo~bar SYSTEM 'system_literal'>]></r>]=])
-	self:expectLuaError("Incomplete declaration 1", xml.toTable, [=[<!DOCTYPE r [<!NOTATION>]></r>]=])
-	self:expectLuaError("Incomplete declaration 2", xml.toTable, [=[<!DOCTYPE r [<!NOTATION >]></r>]=])
-	self:expectLuaError("Incomplete declaration 3", xml.toTable, [=[<!DOCTYPE r [<!NOTATION name>]></r>]=])
-	self:expectLuaError("Incomplete declaration 4", xml.toTable, [=[<!DOCTYPE r [<!NOTATION name SYSTEM>]></r>]=])
-	self:expectLuaError("Incomplete declaration 5", xml.toTable, [=[<!DOCTYPE r [<!NOTATION name SYSTEM >]></r>]=])
-	self:expectLuaError("Incomplete declaration 6", xml.toTable, [=[<!DOCTYPE r [<!NOTATION name PUBLIC>]></r>]=])
-	self:expectLuaError("Incomplete declaration 7", xml.toTable, [=[<!DOCTYPE r [<!NOTATION name PUBLIC >]></r>]=])
+	self:expectLuaError("Incorrect opening word", lxl.toTable, [=[<!DOCTYPE r [<!NATOTION foobar SYSTEM 'system_literal'>]></r>]=])
+	self:expectLuaError("Bad Name", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION foo~bar SYSTEM 'system_literal'>]></r>]=])
+	self:expectLuaError("Incomplete declaration 1", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION>]></r>]=])
+	self:expectLuaError("Incomplete declaration 2", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION >]></r>]=])
+	self:expectLuaError("Incomplete declaration 3", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION name>]></r>]=])
+	self:expectLuaError("Incomplete declaration 4", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION name SYSTEM>]></r>]=])
+	self:expectLuaError("Incomplete declaration 5", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION name SYSTEM >]></r>]=])
+	self:expectLuaError("Incomplete declaration 6", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION name PUBLIC>]></r>]=])
+	self:expectLuaError("Incomplete declaration 7", lxl.toTable, [=[<!DOCTYPE r [<!NOTATION name PUBLIC >]></r>]=])
 	--]====]
 end)
 --]===]
@@ -631,7 +631,7 @@ self:registerJob("DOCTYPE: PubidLiteral syntax", function(self)
 
 		self:print(3, "good PutidLiteral syntax")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		print(pretty.print(tree))
 		self:isEqual(tree.g_entities["foobar"].id, "entity_def")
 		self:isEqual(tree.g_entities["foobar"].value.id, "external_id")
@@ -643,18 +643,18 @@ self:registerJob("DOCTYPE: PubidLiteral syntax", function(self)
 
 
 	-- [====[
-	self:expectLuaError("wrong opening literal", xml.toTable,     [=[ <!DOCTYPE r [ <!NOTATION n public 'abc' 'def'> ] > <r/> ]=])
-	self:expectLuaError("invalid PubidLiteral", xml.toTable,      [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC 'a~b' 'def'> ] > <r/> ]=])
-	self:expectLuaError("PubidLiteral bad quoting", xml.toTable,  [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "abc' 'def'> ] > <r/> ]=])
-	self:expectLuaError("SystemLiteral bad quoting", xml.toTable, [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "abc" 'def"> ] > <r/> ]=])
+	self:expectLuaError("wrong opening literal", lxl.toTable,     [=[ <!DOCTYPE r [ <!NOTATION n public 'abc' 'def'> ] > <r/> ]=])
+	self:expectLuaError("invalid PubidLiteral", lxl.toTable,      [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC 'a~b' 'def'> ] > <r/> ]=])
+	self:expectLuaError("PubidLiteral bad quoting", lxl.toTable,  [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "abc' 'def'> ] > <r/> ]=])
+	self:expectLuaError("SystemLiteral bad quoting", lxl.toTable, [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "abc" 'def"> ] > <r/> ]=])
 
-	self:expectLuaReturn("Empty PubidLiteral", xml.toTable,        [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "" 'def'>    ] > <r/> ]=])
-	self:expectLuaReturn("Empty SystemLiteral", xml.toTable,       [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC 'abc' "">       ] > <r/> ]=])
+	self:expectLuaReturn("Empty PubidLiteral", lxl.toTable,        [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC "" 'def'>    ] > <r/> ]=])
+	self:expectLuaReturn("Empty SystemLiteral", lxl.toTable,       [=[ <!DOCTYPE r [ <!NOTATION n PUBLIC 'abc' "">       ] > <r/> ]=])
 
 	do
 		-- #x20 | #xD | #xA | [a-zA-Z0-9] | [-'()+,./:=?;!*#@$_%]
 		local str = "<!NOTATION n PUBLIC \"\32\13\10abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'()+,./:=?;!*#@$_%\" \"syslit\">"
-		self:expectLuaReturn("PubidLiteral: every permitted character", xml.toTable, "<!DOCTYPE r [" .. str .. "]><r/>")
+		self:expectLuaReturn("PubidLiteral: every permitted character", lxl.toTable, "<!DOCTYPE r [" .. str .. "]><r/>")
 	end
 	--]====]
 end)
@@ -677,7 +677,7 @@ self:registerJob("DOCTYPE: some additional <!ENTITY> syntax tests", function(sel
 
 		self:print(3, "References in EntityValues should be bypassed")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		print(pretty.print(tree))
 		self:isEqual(tree.g_entities["e"], "&lt;XY&amp;Z&gt;")
 		self:isEqual(tree.children[2].children[1].text, "<")
@@ -691,13 +691,13 @@ self:registerJob("DOCTYPE: some additional <!ENTITY> syntax tests", function(sel
 
 
 	-- [====[
-	self:expectLuaReturn("single quotes", xml.toTable, "<!DOCTYPE r [<!ENTITY e 'a'>]><r/>")
-	self:expectLuaReturn("double quotes", xml.toTable, "<!DOCTYPE r [<!ENTITY e \"a\">]><r/>")
-	self:expectLuaReturn("no content between quotes", xml.toTable, "<!DOCTYPE r [<!ENTITY e \"\">]><r/>")
-	self:expectLuaReturn("angle brackets are OK in EntityValues", xml.toTable, "<!DOCTYPE r [<!ENTITY e '<>< ><  ><   ><  >< ><>'>]><r/>")
-	self:expectLuaError("Broken Reference", xml.toTable, "<!DOCTYPE r [<!ENTITY r 'XY&f00fZ'>]><r/>")
-	self:expectLuaError("Broken PEReference", xml.toTable, "<!DOCTYPE r [<!ENTITY r '%'>]><r/>")
-	self:expectLuaError("PEReferences in markupdecl in the internal DTD are not allowed", xml.toTable, "<!DOCTYPE r [<!ENTITY r 'foo%bar;'>]><r/>")
+	self:expectLuaReturn("single quotes", lxl.toTable, "<!DOCTYPE r [<!ENTITY e 'a'>]><r/>")
+	self:expectLuaReturn("double quotes", lxl.toTable, "<!DOCTYPE r [<!ENTITY e \"a\">]><r/>")
+	self:expectLuaReturn("no content between quotes", lxl.toTable, "<!DOCTYPE r [<!ENTITY e \"\">]><r/>")
+	self:expectLuaReturn("angle brackets are OK in EntityValues", lxl.toTable, "<!DOCTYPE r [<!ENTITY e '<>< ><  ><   ><  >< ><>'>]><r/>")
+	self:expectLuaError("Broken Reference", lxl.toTable, "<!DOCTYPE r [<!ENTITY r 'XY&f00fZ'>]><r/>")
+	self:expectLuaError("Broken PEReference", lxl.toTable, "<!DOCTYPE r [<!ENTITY r '%'>]><r/>")
+	self:expectLuaError("PEReferences in markupdecl in the internal DTD are not allowed", lxl.toTable, "<!DOCTYPE r [<!ENTITY r 'foo%bar;'>]><r/>")
 	--]====]
 end)
 

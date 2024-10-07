@@ -4,14 +4,14 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
 
 
 local hex = string.char
@@ -31,7 +31,7 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
+self:registerFunction("lxl.toTable()", lxl.toTable)
 
 
 -- [===[
@@ -42,7 +42,7 @@ self:registerJob("Comments", function(self)
 
 		self:print(3, "[+] Minimum Comment)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		local comment = root.children[1]
 		print(pretty.print(root))
@@ -56,7 +56,7 @@ self:registerJob("Comments", function(self)
 
 		self:print(3, "[+] Comment)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		local comment = root.children[1]
 		print(pretty.print(root))
@@ -66,9 +66,9 @@ self:registerJob("Comments", function(self)
 
 
 	-- [====[
-	self:expectLuaError("no embedded '--' substrings in comments", xml.toTable, "<r><!-- uh--oh --></r>")
-	self:expectLuaError("comment can't end with '--->'", xml.toTable, "<r><!-- oh my ---></r>")
-	self:expectLuaError("unclosed comment", xml.toTable, "<r><!-- oops - -></r>")
+	self:expectLuaError("no embedded '--' substrings in comments", lxl.toTable, "<r><!-- uh--oh --></r>")
+	self:expectLuaError("comment can't end with '--->'", lxl.toTable, "<r><!-- oh my ---></r>")
+	self:expectLuaError("unclosed comment", lxl.toTable, "<r><!-- oops - -></r>")
 	--]====]
 end
 )
@@ -86,7 +86,7 @@ self:registerJob("Processing Instructions", function(self)
 
 		self:print(3, "[+] Minimum PI")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local pi = tree.children[1]
 		self:isEqual(pi.name, "pi")
 		self:isEqual(pi.text, "")
@@ -103,7 +103,7 @@ self:registerJob("Processing Instructions", function(self)
 
 		self:print(3, "[+] PI")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		local pi = tree.children[1]
 		self:isEqual(pi.name, "pi")
 		self:isEqual(pi.text, "foobar")
@@ -112,10 +112,10 @@ self:registerJob("Processing Instructions", function(self)
 
 
 	-- [====[
-	self:expectLuaError("improperly closed PI", xml.toTable, [=[<?pi foobar><r></r>]=])
-	self:expectLuaError("cut off at first '?>'", xml.toTable, [=[<?foobar abc?>def?><r></r>]=])
-	self:expectLuaError("no PITarget", xml.toTable, [=[<??><r></r>]=])
-	self:expectLuaError("PITarget starts with reserved pattern 'XML'", xml.toTable, [=[ <?xMlreserved uh oh! ?><r></r>]=])
+	self:expectLuaError("improperly closed PI", lxl.toTable, [=[<?pi foobar><r></r>]=])
+	self:expectLuaError("cut off at first '?>'", lxl.toTable, [=[<?foobar abc?>def?><r></r>]=])
+	self:expectLuaError("no PITarget", lxl.toTable, [=[<??><r></r>]=])
+	self:expectLuaError("PITarget starts with reserved pattern 'XML'", lxl.toTable, [=[ <?xMlreserved uh oh! ?><r></r>]=])
 	-- ^ The leading space prevents the PI from being read as an XML Declaration.
 	--]====]
 end

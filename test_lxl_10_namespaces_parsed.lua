@@ -4,19 +4,17 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
+local namespace = require(PATH .. "lxl_namespace")
 local pretty = require(PATH .. "test_pretty")
-local utf8Conv = require(PATH .. "xml_lib.utf8_conv")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-
-
-local namespace = require(PATH .. "xml_namespace")
-local struct = require(PATH .. "xml_struct")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
+local pUTF8Conv = require(PATH .. "pile_utf8_conv")
+local struct = require(PATH .. "lxl_struct")
 
 
 local hex = string.char
@@ -46,7 +44,7 @@ self:registerJob("(parser) Namespaced Element Names", function(self)
 
 		self:print(3, "[+] Element: getNamespaceAttribute()")
 		self:print(4, str)
-		local parser = xml.newParser()
+		local parser = lxl.newParser()
 		parser:setNamespaceMode("1.0")
 		local o = parser:toTable(str)
 
@@ -74,7 +72,7 @@ self:registerJob("(parser) Default Namespace", function(self)
 
 		self:print(3, "[+] Default Namespace")
 		self:print(4, str)
-		local parser = xml.newParser()
+		local parser = lxl.newParser()
 		parser:setNamespaceMode("1.0")
 		local o = parser:toTable(str)
 
@@ -110,7 +108,7 @@ self:registerJob("(parser) Namespace 1.1: undeclaring prefixed namespaces", func
 
 		self:print(3, "[+] NS 1.1 undeclaring")
 		self:print(4, str)
-		local parser = xml.newParser()
+		local parser = lxl.newParser()
 		parser:setNamespaceMode("1.1")
 		local o = parser:toTable(str)
 
@@ -135,7 +133,7 @@ self:registerJob("(parser) Namespaced Attributes in Elements", function(self)
 		self:print(3, "[+] Element: getNamespaceAttribute()")
 		self:print(4, str)
 
-		local parser = xml.newParser()
+		local parser = lxl.newParser()
 		parser:setNamespaceMode("1.0")
 		local e = parser:toTable(str)
 
@@ -153,7 +151,7 @@ self:registerJob("(parser) Test Namespace state errors", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Namespace state errors")
-		local parser = xml.newParser()
+		local parser = lxl.newParser()
 		parser:setNamespaceMode("1.0")
 
 		-- err_ns_empty_ns_uri (1.0 only)

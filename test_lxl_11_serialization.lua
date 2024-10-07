@@ -4,18 +4,16 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Conv = require(PATH .. "xml_lib.utf8_conv")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-
-
-local struct = require(PATH .. "xml_struct")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
+local pUTF8Conv = require(PATH .. "pile_utf8_conv")
+local struct = require(PATH .. "lxl_struct")
 
 
 local hex = string.char
@@ -35,23 +33,23 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
-self:registerFunction("xml.toString()", xml.toString)
+self:registerFunction("lxl.toTable()", lxl.toTable)
+self:registerFunction("lxl.toString()", lxl.toString)
 
 
 -- [===[
-self:registerFunction("xml.newXMLObject", xml.newXMLObject)
+self:registerFunction("lxl.newXMLObject", lxl.newXMLObject)
 self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Basic test")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("r")
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -60,15 +58,15 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Nested elements")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		local e2 = e:newElement("b")
 		local e3 = e2:newElement("c")
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -77,15 +75,15 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Attributes")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		e:setAttribute("foo", "bar")
 		e:setAttribute("baz", "bop")
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -94,7 +92,7 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Attributes with escaped characters")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		e:setAttribute("foo", "a<b>c")
 		e:setAttribute("baz", "d'e")
@@ -102,10 +100,10 @@ self:registerJob("parser:toString()", function(self)
 		e:setAttribute("baz3", "h'\"i")
 		print(pretty.print(e))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -114,7 +112,7 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Comments and PIs, before, within and after the root element")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local p1 = o:newProcessingInstruction("abc", "before")
 		local c1= o:newComment("def")
 		local e = o:newElement("a")
@@ -124,10 +122,10 @@ self:registerJob("parser:toString()", function(self)
 		local c3= o:newComment("mnopqrstuvwxyz")
 		print(pretty.print(e))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -136,14 +134,14 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[-] Processing Instruction corruption")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local p1 = o:newProcessingInstruction("pi", "foo")
 
 		-- corrupt the PI name
 		p1.name = "."
 		print(pretty.print(o))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 
 		self:expectLuaError("invalid PI target", p.toString, p, o)
 
@@ -159,14 +157,14 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[-] Comment corruption")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local comment = o:newComment("foobar")
 
 		-- corrupt the comment text
 		comment.text = "foo--bar"
 		print(pretty.print(o))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 
 		self:expectLuaError("invalid comment text", p.toString, p, o)
 	end
@@ -176,7 +174,7 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] CharacterData + CDATA Sections")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		local c1 = e:newCharacterData("abc")
 		local c2 = e:newCharacterData("def", true)
@@ -184,10 +182,10 @@ self:registerJob("parser:toString()", function(self)
 
 		print(pretty.print(e))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 		print(pretty.print(o2))
 	end
@@ -197,7 +195,7 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[-] Invalid CharData")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		local c1 = e:newCharacterData("abc")
 
@@ -206,7 +204,7 @@ self:registerJob("parser:toString()", function(self)
 
 		print(pretty.print(e))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		self:expectLuaError("invalid CharData", p.toString, p, o)
 	end
 	--]====]
@@ -215,7 +213,7 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] Handling of ']]>' in CDATA Sections")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 		local e = o:newElement("a")
 		local c1 = e:newCharacterData("abc")
 		local c2 = e:newCharacterData("def]]>ghi", true)
@@ -223,10 +221,10 @@ self:registerJob("parser:toString()", function(self)
 
 		print(pretty.print(e))
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
-		local o2 = xml.toTable(str)
+		local o2 = lxl.toTable(str)
 		print(str)
 	end
 	--]====]
@@ -235,12 +233,12 @@ self:registerJob("parser:toString()", function(self)
 	-- [====[
 	do
 		self:print(3, "[+] indenting")
-		local o = xml.newXMLObject()
+		local o = lxl.newXMLObject()
 
 		local e = o:newElement("r")
 		local e1 = e:newElement("a")
 
-		local p = xml.newParser()
+		local p = lxl.newParser()
 		local str = p:toString(o)
 
 		self:isEqual(str, [=[

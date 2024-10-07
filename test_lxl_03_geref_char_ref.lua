@@ -4,14 +4,14 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
 
 
 local hex = string.char
@@ -31,7 +31,7 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
+self:registerFunction("lxl.toTable()", lxl.toTable)
 
 
 -- [===[
@@ -47,7 +47,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 		self:print(3, "[+] custom General Entity")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:print(4, pretty.print(tree))
 		self:isEqual(tree.children[2].children[1].text, "where? oh, ")
 		self:isEqual(tree.children[2].children[2].text, "that's the one.")
@@ -66,7 +66,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 		self:print(3, "[+] nested General Entity References (1)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:print(4, pretty.print(tree))
 		self:isEqual(tree.children[2].children[1].text, "where? oh, ")
 		self:isEqual(tree.children[2].children[2].text, "that makes ")
@@ -85,7 +85,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 		self:print(3, "[+] nested General Entity References (2)")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:isEqual(tree.children[2].children[1].text, "he told me to tell you to ")
 		self:isEqual(tree.children[2].children[2].text, "check the ")
 		self:isEqual(tree.children[2].children[3].text, "auxiliary")
@@ -106,7 +106,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 		self:print(3, "[+] nested General Entity References (3).")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:isEqual(tree.children[2].children[1].text, "y")
 		self:isEqual(tree.children[2].children[2].text, "y")
 	end
@@ -114,7 +114,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 
 	-- [====[
-	self:expectLuaError("disallowed recursion (direct) in a General Entity", xml.toTable, [=[
+	self:expectLuaError("disallowed recursion (direct) in a General Entity", lxl.toTable, [=[
 <!DOCTYPE root [
 <!ENTITY alpha "it's an &alpha;.">
 ]>
@@ -123,12 +123,12 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 
 	-- [====[
-	self:expectLuaError("undeclared custom General Entity", xml.toTable, [=[<root>&alpha;</root>]=])
+	self:expectLuaError("undeclared custom General Entity", lxl.toTable, [=[<root>&alpha;</root>]=])
 	--]====]
 
 
 	-- [====[
-	self:expectLuaError("disallowed recursion (indirect) in a General Entity", xml.toTable, [=[
+	self:expectLuaError("disallowed recursion (indirect) in a General Entity", lxl.toTable, [=[
 <!DOCTYPE root [
 <!ENTITY a1 "Ask &a2; about this.">
 <!ENTITY a2 "Ask &a1; about that.">
@@ -138,7 +138,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 
 
 	-- [====[
-	self:expectLuaError("unbalanced content within General Entity", xml.toTable, [=[
+	self:expectLuaError("unbalanced content within General Entity", lxl.toTable, [=[
 <!DOCTYPE root [
 <!ENTITY dr "drink</p>">
 ]>
@@ -174,7 +174,7 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 				local xml_pd = str:find("\"") and xml_pd_base2 or xml_pd_base1
 				xml_pd = xml_pd:gsub("XX", k):gsub("YY", str)
 				print(xml_pd)
-				local xml_obj = xml.toTable(xml_pd)
+				local xml_obj = lxl.toTable(xml_pd)
 				-- We don't need to check the resulting values, since predefined general entities
 				-- have their own codepath that runs before the custom entity path is considered.
 			end
@@ -187,23 +187,23 @@ self:registerJob("General Entity References (&foo;) in content", function(self)
 	do
 		self:print(3, "[-] test some invalid predefined entity declarations.")
 
-		self:expectLuaError("bad amp declaration", xml.toTable, [[
+		self:expectLuaError("bad amp declaration", lxl.toTable, [[
 <!DOCTYPE root [<!ENTITY amp "&#38;">]><root>&amp;</root>]])
 
-		self:expectLuaError("bad amp declaration (2)", xml.toTable, [[
+		self:expectLuaError("bad amp declaration (2)", lxl.toTable, [[
 <!DOCTYPE root [<!ENTITY amp "&">]><root>&amp;</root>]])
 
-		self:expectLuaError("bad amp declaration (3)", xml.toTable, [[
+		self:expectLuaError("bad amp declaration (3)", lxl.toTable, [[
 <!DOCTYPE root [<!ENTITY amp "a">]><root>&amp;</root>]])
 
-		self:expectLuaError("bad gt declaration", xml.toTable, [[
+		self:expectLuaError("bad gt declaration", lxl.toTable, [[
 <!DOCTYPE root [<!ENTITY gt "Weee!">]><root>&gt;</root>]])
 	end
 	--]====]
 
 
 	do
-		self:expectLuaError("unparsed entities cannot be dereferenced (&;) (Content)", xml.toTable, [=[
+		self:expectLuaError("unparsed entities cannot be dereferenced (&;) (Content)", lxl.toTable, [=[
 <!DOCTYPE r [
 <!ENTITY fodorz SYSTEM "https://www.example.com/" NDATA pretend_thing>
 ]>
@@ -222,7 +222,7 @@ self:registerJob("General Entity References (&foo;) in attribute values", functi
 <!ENTITY fodorz SYSTEM "https://www.example.com/" NDATA pretend_thing>
 ]>
 <r a="&fodorz;"></r>]=]
-		self:expectLuaError("unparsed entities cannot be dereferenced (&;) (AttValue)", xml.toTable, str)
+		self:expectLuaError("unparsed entities cannot be dereferenced (&;) (AttValue)", lxl.toTable, str)
 	end
 end
 )
@@ -231,27 +231,27 @@ end
 
 -- [===[
 self:registerJob("Character References (&#N;, &#xN;)", function(self)
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#;</r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#0;</r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#999999999999;</r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#-1;</r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#woop;</r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (content)", xml.toTable, [=[<r>&#x;</r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (content)", xml.toTable, [=[<r>&#x0;</r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (content)", xml.toTable, [=[<r>&#xfffffffffffff;</r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (content)", xml.toTable, [=[<r>&#x-1;</r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (content)", xml.toTable, [=[<r>&#xwoop;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#0;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#999999999999;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#-1;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#woop;</r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (content)", lxl.toTable, [=[<r>&#x;</r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (content)", lxl.toTable, [=[<r>&#x0;</r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (content)", lxl.toTable, [=[<r>&#xfffffffffffff;</r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (content)", lxl.toTable, [=[<r>&#x-1;</r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (content)", lxl.toTable, [=[<r>&#xwoop;</r>]=])
 
-	self:expectLuaError("invalid Character Reference (dec) (AttValue)", xml.toTable, [=[<r a="&#;"></r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (AttValue)", xml.toTable, [=[<r a="&#0;"></r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (AttValue)", xml.toTable, [=[<r a="&#999999999999;"></r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (AttValue)", xml.toTable, [=[<r a="&#-1;"></r>]=])
-	self:expectLuaError("invalid Character Reference (dec) (AttValue)", xml.toTable, [=[<r a="&#woop;"></r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (AttValue)", xml.toTable, [=[<r a="&#x;"></r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (AttValue)", xml.toTable, [=[<r a="&#x0;"></r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (AttValue)", xml.toTable, [=[<r a="&#xfffffffffffff;"></r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (AttValue)", xml.toTable, [=[<r a="&#x-1;"></r>]=])
-	self:expectLuaError("invalid Character Reference (hex) (AttValue)", xml.toTable, [=[<r a="&#xwoop;"></r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (AttValue)", lxl.toTable, [=[<r a="&#;"></r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (AttValue)", lxl.toTable, [=[<r a="&#0;"></r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (AttValue)", lxl.toTable, [=[<r a="&#999999999999;"></r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (AttValue)", lxl.toTable, [=[<r a="&#-1;"></r>]=])
+	self:expectLuaError("invalid Character Reference (dec) (AttValue)", lxl.toTable, [=[<r a="&#woop;"></r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (AttValue)", lxl.toTable, [=[<r a="&#x;"></r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (AttValue)", lxl.toTable, [=[<r a="&#x0;"></r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (AttValue)", lxl.toTable, [=[<r a="&#xfffffffffffff;"></r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (AttValue)", lxl.toTable, [=[<r a="&#x-1;"></r>]=])
+	self:expectLuaError("invalid Character Reference (hex) (AttValue)", lxl.toTable, [=[<r a="&#xwoop;"></r>]=])
 
 
 	-- [====[
@@ -260,7 +260,7 @@ self:registerJob("Character References (&#N;, &#xN;)", function(self)
 
 		self:print(3, "[+] valid character references (in Content).")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:isEqual(tree.children[1].children[1].text, "A")
 		self:isEqual(tree.children[1].children[2].text, "B")
 		self:isEqual(tree.children[1].children[3].text, "C")
@@ -282,7 +282,7 @@ self:registerJob("Character References (&#N;, &#xN;)", function(self)
 
 		self:print(3, "[+] valid character references (in AttValue).")
 		self:print(4, str)
-		local tree = xml.toTable(str)
+		local tree = lxl.toTable(str)
 		self:isEqual(tree.children[1].attr["a"], "ABCDEabcde")
 	end
 	--]====]

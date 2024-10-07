@@ -1,10 +1,8 @@
-**Version:** 2.0.3
+**Version:** 2.0.4
 
 # Lua XML Library
 
-A non-validating XML 1.0 processor, written in Lua.
-
-Tested with Lua 5.1.5, Lua 5.2.4, Lua 5.3.6, Lua 5.4.6 and LuaJIT 2.1.1707061634 on Fedora 39, and Lua 5.1.5 on Windows 10.
+A non-validating XML 1.0 processor for Lua 5.1 - 5.4.
 
 
 # Features:
@@ -27,9 +25,9 @@ Tested with Lua 5.1.5, Lua 5.2.4, Lua 5.3.6, Lua 5.4.6 and LuaJIT 2.1.1707061634
 
 ```lua
 -- example1.lua
-local xml = require("path.to.xml")
+local lxl = require("path.to.lxl")
 
-local xml_obj = xml.toTable([=[
+local xml_obj = lxl.toTable([=[
 <foobar>
  <elem1 a1="Hello" a2="World">Some text.</elem1>
  <empty/>
@@ -57,7 +55,7 @@ a2	World
 --]]
 
 
-print(xml.toString(xml_obj))
+print(lxl.toString(xml_obj))
 -- Output:
 --[[
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,83 +69,74 @@ print(xml.toString(xml_obj))
 
 # Files
 
-These files and directories are required:
+These files are required:
 
-* `xml_lib` (dir)
-* `xml.lua`: The main interface
-* `xml_in.lua`: String-to-table conversion logic
-* `xml_out.lua`: Table-to-string conversion logic
-* `xml_namespace.lua`: XML Namespace logic
-* `xml_shared.lua`: Common data and utility functions
-* `xml_struct.lua`: XML object structures
-
-
-Test and example files may be removed:
-
-* `test` (dir)
-* `example1.lua`
-* `test_xml.lua`: xml.lua API tests
-* `test_pretty.lua`: A pretty-printer for other tests.
-* `t1.lua`: Encoding, XML declaration
-* `t2.lua`: XML basics; names; charData; CDSect
-* `t3.lua`: General entity references; character references
-* `t4.lua`: Attributes
-* `t5.lua`: DOCTYPE; 'standalone'; PEReferences; unexp
-* `t6.lua`: Comments; processing instructions
-* `t7.lua`: XML bomb (billion laughs attack) mitigation
-* `t8.lua`: xmlObject API
-* `t9.lua`: XML Namespaces (via xmlObject)
-* `ta.lua`: XML Namespaces (via parser)
-* `tb.lua`: Serializing xmlObjects
+* `lxl.lua`: The main interface
+* `lxl_in.lua`: String-to-table conversion logic
+* `lxl_out.lua`: Table-to-string conversion logic
+* `lxl_namespace.lua`: XML Namespace logic
+* `lxl_shared.lua`: Common data and utility functions
+* `lxl_struct.lua`: XML object structures
+* Support files:
+  * `pile_arg_check.lua`
+  * `pile_interp.lua`
+  * `pile_table.lua`
+  * `pile_utf8.lua`
+  * `pile_utf8_conv.lua`
+  * `string_proc.lua`
+  * `string_walk.lua`
 
 
-# API: xml.lua
+All files beginning with `example` or `test` may be removed.
 
-## xml.newParser
+
+# API: lxl.lua
+
+## lxl.newParser
 
 Makes a new xmlParser object.
 
-`local parser = xml.newParser()`
+`local parser = lxl.newParser()`
 
 **Returns:** An xmlParser with default settings.
 
 
-## xml.toTable
+## lxl.toTable
 
 Converts an XML string to an xmlObject (a nested table), with default parser settings.
 
-`local xml_obj = xml.toTable(str)`
+`local xml_obj = lxl.toTable(str)`
 
 * `str`: The XML string to convert.
 
 **Returns:** An xmlObject.
 
 
-## xml.toString
+## lxl.toString
 
 Converts an xmlObject (nested table) to an XML string, with default parser settings.
 
-`local str = xml.toString(xml_obj)`
+`local str = lxl.toString(xml_obj)`
 
 * `xml_obj`: The xmlObject to convert.
 
 **Returns:** An XML string.
 
 
-## xml.newXMLObject
+## lxl.newXMLObject
 
 Creates a new xmlObject with no nodes.
 
-`local xml_obj = xml.newXMLObject()`
+`local xml_obj = lxl.newXMLObject()`
 
 **Returns:** The new xmlObject.
 
 
-## xml.load
+## lxl.load
 
 Loads an XML file from disk and converts it to an xmlObject using the default parser settings.
 
-`local xml_obj = xml.load(path)`
+`local xml_obj = lxl.load(path)`
 
 * `path`: The file path.
 
@@ -1270,7 +1259,7 @@ Sets the unexpanded entity's name.
 
 ## Handling of PEReferences
 
-(This section originates from a pile of miscellaneous comments for the function *sym.PEReference()* in *xml_in.lua*.)
+(This section originates from a pile of miscellaneous comments for the function *sym.PEReference()* in *lxl_in.lua*.)
 
 As a non-validating processor, we are not obligated to process entity declarations within the replacement text of a PEReference. (See: *Well-formedness constraint: Entity Declared*) In practice, this means that LXL never expands PEReferences.
 

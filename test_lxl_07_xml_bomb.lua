@@ -4,14 +4,14 @@
 local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 
 
-require(PATH .. "test.lib.strict")
+require(PATH .. "test.strict")
 
 
-local errTest = require(PATH .. "test.lib.err_test")
-local inspect = require(PATH .. "test.lib.inspect.inspect")
+local errTest = require(PATH .. "test.err_test")
+local inspect = require(PATH .. "test.inspect")
+local lxl = require(PATH .. "lxl")
 local pretty = require(PATH .. "test_pretty")
-local utf8Tools = require(PATH .. "xml_lib.utf8_tools")
-local xml = require(PATH .. "xml")
+local pUTF8 = require(PATH .. "pile_utf8")
 
 
 local hex = string.char
@@ -31,7 +31,7 @@ end
 local self = errTest.new("xmlParser", cli_verbosity)
 
 
-self:registerFunction("xml.toTable()", xml.toTable)
+self:registerFunction("lxl.toTable()", lxl.toTable)
 
 
 -- [===[
@@ -51,7 +51,7 @@ self:registerJob("(Small) XML Bomb", function(self)
 
 	self:print(3, "[+] expand three levels deep to 376 characters")
 	self:print(4, str_thousand_laughs)
-	local tree = xml.toTable(str_thousand_laughs)
+	local tree = lxl.toTable(str_thousand_laughs)
 	local root = tree:getRoot()
 	self:print(4, root.children[1])
 end
@@ -78,7 +78,7 @@ self:registerJob("Mitigation against XML Bombs", function(self)
 ]>
 <lolz>&lol9;</lolz>]=]
 
-	local parser = xml.newParser()
+	local parser = lxl.newParser()
 	parser:setMaxEntityBytes(32768)
 	local ok, tree = self:expectLuaError("Stop Billion Laughs Attack after 32 KiB of replacement text", parser.toTable, parser, xml_bomb)
 	--local tree = parser:toTable(xml_bomb)

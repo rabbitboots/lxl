@@ -8,10 +8,8 @@ local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 local pretty = {}
 
 
-local inspect = require(PATH .. "test.lib.inspect.inspect")
-
-
-local shared = require(PATH .. "xml_shared")
+local inspect = require(PATH .. "test.inspect")
+local shared = require(PATH .. "lxl_shared")
 
 
 local function _print(t, ...)

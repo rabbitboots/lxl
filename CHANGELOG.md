@@ -1,8 +1,13 @@
-# v2.0.4 -- 04 Oct 2024
+# v2.0.4 -- 07 Oct 2024
 
-* Renamed test files.
+* Renamed files:
+  * Library files beginning with `xml` now start with `lxl`
+  * Renamed test files to be more descriptive.
 * Flattened the `test` folder.
+* Moved library files out of `xml_lib` and into the main directory.
 * Integrated snippets from PILE (type checker, etc.).
+* Replaced `utf8_tools.lua` with `pile_utf8.lua` and `utf8_conv.lua` with `pile_utf8_conv.lua`.
+* Gathered license text for test libraries into the file `test_LICENSE`.
 
 
 # v2.0.3 -- 01 Oct 2024
