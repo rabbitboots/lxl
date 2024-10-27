@@ -1263,13 +1263,13 @@ Sets the unexpanded entity's name.
 
 As a non-validating processor, we are not obligated to process entity declarations within the replacement text of a PEReference. (See: *Well-formedness constraint: Entity Declared*) In practice, this means that LXL never expands PEReferences.
 
-Unless standalone is `yes`, we are not required to process declarations after the first PEReference that is ignored in the internal subset (see: *§4.4.8 Included as PE*).
+Unless `standalone` is `yes`, we are not required to process declarations after the first PEReference that is ignored in the internal subset (see: *§4.4.8 Included as PE*).
 
-In the DTD internal subset, PEReferences cannot appear inside of markup declarations (no nesting, basically). This rule doesn't apply in the case of external subsets, which we aren't going to touch because this is non-validating. (See: *Well-formedness constraint: PEs in Internal Subset*)
+In the DTD internal subset, PEReferences cannot appear inside of markup declarations. (No nesting, basically.) This rule doesn't apply in the case of external subsets, which we don't touch because this is non-validating. (See: *Well-formedness constraint: PEs in Internal Subset*)
 
-There is a rule to expand PEReference when they appear in the text of an EntityValue (see: *§4.4.5 Included in Literal*). In the internal subset, this rule never comes into play because it is overridden by *Well-formedness constraint: PEs in Internal Subset*.
+There is a rule to expand PEReferences when they appear in the text of an EntityValue (see: *§4.4.5 Included in Literal*). In the internal subset, this rule never comes into play because it is overridden by *Well-formedness constraint: PEs in Internal Subset*.
 
-The text of *Well-formedness constraint: In DTD* is a little misleading. It says that PEReferences must not appear outside of the DTD. What it means is that the grammar just won't recognize substrings like `%foobar;` as PEReferences elsewhere.
+The text of *Well-formedness constraint: In DTD* is a little misleading. It says that PEReferences must not appear outside of the DTD. What it means is that substrings like `%foobar;` just won't be recognized as PEReferences elsewhere.
 
 If you read Tim Bray's annotated version of the spec, be sure to cross reference it with the latest edition.
 
@@ -1306,7 +1306,7 @@ The namespace state is invalid when:
 
 * (XML Namespaces 1.0) A namespace declaration undeclares a prefixed namespace with an empty string
 
-* An element contains duplicate namespaced attributes which resolve to the same URI + local name pair.
+* An element contains duplicate namespaced attributes which resolve to the same URI + local name pair
 
 The situation is different when manipulating an xmlObject node tree. The namespace state in elements is not cached (attempts to do so resulted in brittle code), and the tree's namespace state can be rendered invalid by just renaming an element. You can call `xmlObject:checkNamespaceState()` after changing the tree to perform the same checks as the parser.
 
