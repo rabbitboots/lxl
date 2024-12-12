@@ -144,7 +144,7 @@ Loads an XML file from disk and converts it to an xmlObject using the default pa
 
 **Notes:**
 
-* This function is intended for use from the console and the Lua interactive prompt. If your host application provides its own functions to load files (like LÖVE's `love.filesystem`), then you should use those instead. (In such a case, you might want to erase this function at run time with `nil`, or delete it outright.)
+* This function is intended for use from the console and the Lua interactive prompt. If your host application provides its own functions to load files (like LÖVE's `love.filesystem`), then you should use those instead.
 
 
 # API: xmlParser
@@ -790,7 +790,7 @@ Checks the namespace state of the xmlObject node tree, raising an error if any p
 
 **Notes:**
 
-* This method is a no-op when namespace mode isn't active. Otherwise, it performs the same checks as xmlParser when loading a string. See *Invalid Namespace State* for more info.
+* This method does nothing when namespace mode is inactive. Otherwise, it performs the same checks as xmlParser when loading a string. See *Invalid Namespace State* for more info.
 
 
 ## xmlObject:getRoot
