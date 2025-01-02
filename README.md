@@ -1,4 +1,4 @@
-**Version:** 2.0.4
+**Version:** 2.0.5
 
 # Lua XML Library
 
