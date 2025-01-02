@@ -115,7 +115,6 @@ self:registerJob("Attribute-List Declarations", function(self)
 
 	-- [====[
 	do
-		-- See GH Issue: https://github.com/rabbitboots/lxl/issues/1
 		local str = [=[
 <!DOCTYPE root [
 <!ATTLIST root
@@ -124,14 +123,14 @@ self:registerJob("Attribute-List Declarations", function(self)
 ]>
 <root yah_nom="boop "></root>
 ]=]
-		self:print(3, "[+] Apply a #FIXED default value for an attribute (yah_nom -> 'zap')")
+		self:print(3, "[+] Ignore #FIXED default values for attributes that are already populated")
 		self:print(4, str)
 		local tree = lxl.toTable(str)
 		local root = tree:getRoot()
 		--self:print(4, pretty.print(tree))
 		self:print(4, "attr_defaults: " .. inspect(tree.attr_defaults))
 		self:print(4, "root attributes: " .. inspect(root.attr))
-		self:isEqual(root.attr["yah_nom"], "zap")
+		self:isEqual(root.attr["yah_nom"], "boop ")
 	end
 	--]====]
 

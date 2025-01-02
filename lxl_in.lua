@@ -606,7 +606,7 @@ local function _packElement(W, name, attribs)
 	local defaults = W.xml_obj.attr_defaults[name]
 	if defaults then
 		for k, v in pairs(defaults) do
-			if v.keyword == "#FIXED" or (v.default and not attribs[k]) then
+			if v.default and not attribs[k] then
 				attribs[k] = v.default
 			end
 

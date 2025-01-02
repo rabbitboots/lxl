@@ -1,3 +1,9 @@
+# v2.0.5 -- 02 Jan 2025
+
+* [GitHub Issue #1](https://github.com/rabbitboots/lxl/issues/1): changed `#FIXED` attribute behavior to match Luaexpat.
+  * Previously, `#FIXED` attributes would overwrite existing attribute values in the document. Now, they are ignored.
+
+
 # v2.0.4 -- 07 Oct 2024
 
 * Renamed files:
