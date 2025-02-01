@@ -8,7 +8,7 @@ local PATH = ... and (...):match("(.-)[^%.]+$") or ""
 --[[
 MIT License
 
-Copyright (c) 2022 - 2024 RBTS
+Copyright (c) 2022 - 2025 RBTS
 
 Code from github.com/kikito/utf8_validator.lua:
 Copyright (c) 2013 Enrique García Cota + Adam Baldwin + hanzao + Equi 4 Software
